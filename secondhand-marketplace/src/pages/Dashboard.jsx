@@ -12,11 +12,15 @@ const Dashboard = () => {
   };
 
   const handleViewMessages = () => {
-    alert('View Messages clicked!'); // Placeholder functionality
+    alert('You have 3 new messages!'); // Placeholder functionality
   };
 
   const handleViewEarnings = () => {
-    alert('View Earnings clicked!'); // Placeholder functionality
+    alert('You’ve earned $120 this month!'); // Placeholder functionality
+  };
+
+  const handleAddProduct = () => {
+    navigate('/sell'); // Redirect to the Sell page
   };
 
   return (
@@ -40,6 +44,11 @@ const Dashboard = () => {
             <h3>Earnings</h3>
             <p>You've earned $120 this month.</p>
             <button onClick={handleViewEarnings}>View Earnings</button>
+          </div>
+          <div className="card">
+            <h3>Add Product</h3>
+            <p>List a new product for sale.</p>
+            <button onClick={handleAddProduct}>Add Product</button>
           </div>
         </div>
         <div className="recent-activity">
