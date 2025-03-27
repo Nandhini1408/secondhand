@@ -1,92 +1,91 @@
-import React, { useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import ProductCard from '../components/ProductCard';
-
+import React, { useState, useEffect } from "react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import ProductCard from "../components/ProductCard";
 
 const Products = () => {
   const [cart, setCart] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fetchedProducts, setFetchedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const userId = localStorage.getItem("userId");
 
-  const addToCart = (product) => {
-    setCart([...cart, product]);
-    alert(`${product.name} added to cart!`);
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/products");
+        if (!response.ok) {
+          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        setFetchedProducts(data);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to fetch products. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Fetch user's cart from the database
+  const fetchCart = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/cart/${userId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch cart");
+      }
+      const cartData = await response.json();
+      setCart(cartData.products || []);
+    } catch (err) {
+      console.error("Error fetching cart:", err);
+    }
   };
 
-  const products = [
-    {
-      id: 1,
-      name: 'Vintage Camera',
-      description: 'A classic vintage camera in great condition.',
-      price: 120,
-      image: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 2,
-      name: 'Leather Jacket',
-      description: 'Genuine leather jacket, perfect for winter.',
-      price: 80,
-      image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 3,
-      name: 'Wooden Chair',
-      description: 'Handcrafted wooden chair, sturdy and stylish.',
-      price: 60,
-      image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 4,
-      name: 'Smart Watch',
-      description: 'Latest smartwatch with health tracking features.',
-      price: 150,
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 5,
-      name: 'Vintage Record Player',
-      description: 'A retro record player for music lovers.',
-      price: 200,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 6,
-      name: 'Designer Handbag',
-      description: 'Elegant designer handbag for any occasion.',
-      price: 250,
-      image: 'https://images.unsplash.com/photo-1591348278863-a8fb3887e2aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 7,
-      name: 'Wireless Headphones',
-      description: 'High-quality wireless headphones with noise cancellation.',
-      price: 180,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 8,
-      name: 'Antique Clock',
-      description: 'A beautiful antique clock for your home.',
-      price: 90,
-      image: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 9,
-      name: 'Gaming Console',
-      description: 'Next-gen gaming console for immersive gameplay.',
-      price: 400,
-      image: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 10,
-      name: 'Smartphone',
-      description: 'Latest smartphone with high-end features.',
-      price: 600,
-      image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    },
-  ];
+  useEffect(() => {
+    fetchCart();
+  }, [userId]);
 
-  const filteredProducts = products.filter((product) =>
+  // Add product to cart and update database
+  const addToCart = async (product) => {
+    if (!userId) {
+      alert("Please log in to add items to your cart.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/cart/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          productId: product._id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          quantity: 1,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add item to cart");
+      }
+
+      alert(`${product.name} added to cart!`);
+      fetchCart(); // Refresh cart data
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      alert("Error adding product to cart.");
+    }
+  };
+
+  const filteredProducts = fetchedProducts.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -102,17 +101,25 @@ const Products = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button>Search</button>
         </div>
-        <div className="products-grid">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              addToCart={() => addToCart(product)}
-            />
-          ))}
-        </div>
+
+        {loading ? (
+          <p>Loading products...</p>
+        ) : error ? (
+          <p>Error: {error}</p>
+        ) : filteredProducts.length === 0 ? (
+          <p>No products found.</p>
+        ) : (
+          <div className="products-grid">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                addToCart={() => addToCart(product)}
+              />
+            ))}
+          </div>
+        )}
       </main>
       <Footer />
     </div>
